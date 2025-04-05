@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { text-align: center; padding: 20px; background-color: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        #scanner { width: 300px; height: 300px; margin: 20px auto; }
+        #message { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scan QR Code</h1>
+        <input type="text" id="studentId" class="form-control mb-3" placeholder="Enter Student ID (e.g., S001)">
+        <div id="scanner"></div>
+        <p id="message"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        const scanner = new Html5Qrcode("scanner");
+        const studentIdInput = document.getElementById("studentId");
+        const message = document.getElementById("message");
+
+        scanner.start(
+            { facingMode: "environment" }, // Use rear camera
+            { fps: 10, qrbox: { width: 250, height: 250 } }, // Scan settings
+            (decodedText) => {
+                const studentId = studentIdInput.value.trim();
+                if (!studentId) {
+                    message.textContent = "Please enter your Student ID!";
+                    message.style.color = "red";
+                    return;
+                }
+                // Send scan data to server
+                fetch('/mark_attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qr_data: decodedText, student_id: studentId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    message.textContent = data.message;
+                    message.style.color = data.success ? "green" : "red";
+                    if (data.success) scanner.stop(); // Stop scanning on success
+                });
+            },
+            (error) => { console.log("Scan error:", error); }
+        );
+    </script>
+</body>
+</html>
